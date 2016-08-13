@@ -1,5 +1,8 @@
 package org.zalando.fahrschein.domain;
 
+import javax.annotation.concurrent.Immutable;
+
+@Immutable
 public class Partition {
     private final String partition;
     private final String oldestAvailableOffset;
