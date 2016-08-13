@@ -36,7 +36,7 @@ import java.util.Optional;
 import static com.google.common.base.Preconditions.checkState;
 import static java.util.Collections.singletonList;
 
-class NakadiReader<T> implements IORunnable {
+class NakadiReader<T> implements ManageableListener {
 
     private static final Logger LOG = LoggerFactory.getLogger(NakadiReader.class);
 
@@ -57,6 +57,8 @@ class NakadiReader<T> implements IORunnable {
 
     private final MetricsCollector metricsCollector;
 
+    private JsonInput jsonInput;
+
     NakadiReader(URI uri, ClientHttpRequestFactory clientHttpRequestFactory, BackoffStrategy backoffStrategy, CursorManager cursorManager, ObjectMapper objectMapper, String eventName, Optional<Subscription> subscription, Class<T> eventClass, Listener<T> listener, final MetricsCollector metricsCollector) {
         checkState(!subscription.isPresent() || eventName.equals(Iterables.getOnlyElement(subscription.get().getEventTypes())), "Only subscriptions to single event types are currently supported");
 
@@ -76,6 +78,13 @@ class NakadiReader<T> implements IORunnable {
 
         if (clientHttpRequestFactory instanceof HttpComponentsClientHttpRequestFactory) {
             LOG.warn("Using [{}] might block during reconnection, please consider using another implementation of ClientHttpRequestFactory", clientHttpRequestFactory.getClass().getName());
+        }
+    }
+
+    @Override
+    public void close() throws IOException {
+        if (jsonInput != null) {
+            jsonInput.close();
         }
     }
 
@@ -220,7 +229,7 @@ class NakadiReader<T> implements IORunnable {
     void runInternal() throws IOException, BackoffException {
         LOG.info("Starting to listen for events for [{}]", eventName);
 
-        JsonInput jsonInput = openJsonInput();
+        jsonInput = openJsonInput();
         JsonParser jsonParser = jsonInput.getJsonParser();
 
         int errorCount = 0;

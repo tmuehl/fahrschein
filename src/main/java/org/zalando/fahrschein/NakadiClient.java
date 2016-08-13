@@ -85,21 +85,21 @@ public class NakadiClient {
         }
     }
 
-    public <T> void listen(Subscription subscription, Class<T> eventType, Listener<T> listener, StreamParameters streamParameters) throws IOException {
+    public <T> ManageableListener listen(Subscription subscription, Class<T> eventType, Listener<T> listener, StreamParameters streamParameters) throws IOException {
         final String eventName = Iterables.getOnlyElement(subscription.getEventTypes());
         final String queryString = streamParameters.toQueryString();
         final URI uri = baseUri.resolve(String.format("/subscriptions/%s/events?%s", subscription.getId(), queryString));
 
         final NakadiReader<T> nakadiReader = nakadiReaderFactory.createReader(uri, eventName, Optional.of(subscription), eventType, listener);
 
-        nakadiReader.run();
+        return nakadiReader;
     }
 
-    public <T> void listen(String eventName, Class<T> eventType, Listener<T> listener, StreamParameters streamParameters) throws IOException {
-        listen(eventName, eventType, listener, streamParameters, -1, TimeUnit.SECONDS);
+    public <T> ManageableListener listen(String eventName, Class<T> eventType, Listener<T> listener, StreamParameters streamParameters) throws IOException {
+        return listen(eventName, eventType, listener, streamParameters, -1, TimeUnit.SECONDS);
     }
 
-    public <T> void listen(String eventName, Class<T> eventType, Listener<T> listener, StreamParameters streamParameters, long lockTimeout, TimeUnit timeoutUnit) throws IOException {
+    public <T> ManageableListener listen(String eventName, Class<T> eventType, Listener<T> listener, StreamParameters streamParameters, long lockTimeout, TimeUnit timeoutUnit) throws IOException {
         final String queryString = streamParameters.toQueryString();
         final URI uri = baseUri.resolve(String.format("/event-types/%s/events?%s", eventName, queryString));
 
@@ -110,6 +110,7 @@ public class NakadiClient {
             executor.schedule(currentThread::interrupt, lockTimeout, timeoutUnit);
         }
 
-        nakadiReader.run();
+        return nakadiReader;
     }
+
 }
